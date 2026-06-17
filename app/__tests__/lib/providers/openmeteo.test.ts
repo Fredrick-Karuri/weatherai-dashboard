@@ -65,10 +65,10 @@ describe("OpenMeteoProvider", () => {
 
   beforeEach(() => {
     provider = new OpenMeteoProvider();
-    jest.spyOn(global, "setTimeout").mockImplementation((fn: any) => {
-      fn();
-      return 0 as any;
-    });
+jest.spyOn(global, "setTimeout").mockImplementation((fn: TimerHandler) => {
+  if (typeof fn === "function") fn();
+  return 0 as unknown as ReturnType<typeof setTimeout>;
+});
   });
 
   afterEach(() => {

@@ -9,7 +9,7 @@
  * separately from geolocation so neither blocks the other.
  */
 
-import { useState, useTransition, useEffect } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import SearchBar from "./SearchBar";
 import { GeocodeResult } from "@/app/lib/types";
@@ -21,16 +21,8 @@ interface WeatherShellProps {
 export default function WeatherShell({ children }: WeatherShellProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [isNavigating, setIsNavigating] = useState(false);
-
-  // Mirror isPending into isNavigating so SearchBar stays unblocked
-  // once the transition settles, regardless of how long the page fetch takes.
-  useEffect(() => {
-    if (!isPending) setIsNavigating(false);
-  }, [isPending]);
 
   function handleSearch(result: GeocodeResult) {
-    setIsNavigating(true);
     startTransition(() => {
       const params = new URLSearchParams();
       params.set("lat", String(result.lat));
@@ -42,8 +34,8 @@ export default function WeatherShell({ children }: WeatherShellProps) {
 
   return (
     <div className="space-y-6">
-      <SearchBar onSearch={handleSearch} isLoading={isNavigating} />
-      {isNavigating ? <WeatherSkeleton /> : children}
+      <SearchBar onSearch={handleSearch} isLoading={isPending} />
+      {isPending ? <WeatherSkeleton /> : children}
     </div>
   );
 }
