@@ -3,14 +3,21 @@
  *
  * IWeatherProvider implementation backed by Open-Meteo.
  * No API key required. Used as fallback when WEATHERAI_API_KEY is absent.
+ * Retries transient network failures up to MAX_RETRIES before throwing.
  * Docs: https://open-meteo.com/en/docs
  */
 
 import { CurrentConditions, HourlySlot } from "../types";
 import { IWeatherProvider } from "./types";
 import { WEATHERAI_UNITS, HOURLY_SLOTS_TO_SHOW } from "../config";
+import { createLogger } from "../logger";
 
 const OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+const logger = createLogger("OpenMeteoProvider");
+
+const FETCH_TIMEOUT_MS = 5_000;
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 500;
 
 const CURRENT_FIELDS = [
   "temperature_2m",
@@ -46,12 +53,37 @@ function buildForecastUrl(lat: number, lon: number, fields: Record<string, strin
   return url;
 }
 
+async function fetchWithRetry(url: string, label: string): Promise<Response> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      lastError = error;
+      logger.warn(`${label} attempt ${attempt} failed — retrying`, { error: String(error) });
+      if (attempt <= MAX_RETRIES) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    }
+  }
+
+  throw new Error(`${label} failed after ${MAX_RETRIES + 1} attempts: ${String(lastError)}`);
+}
+
 export class OpenMeteoProvider implements IWeatherProvider {
   async getCurrentWeather(lat: number, lon: number, cityName: string): Promise<CurrentConditions> {
     const url = buildForecastUrl(lat, lon, { current: CURRENT_FIELDS });
-    const response = await fetch(url.toString());
+    logger.info("Fetching current weather", { lat, lon, cityName });
+
+    const response = await fetchWithRetry(url.toString(), "Current weather");
 
     if (!response.ok) {
+      const body = await response.text();
+      logger.error("Current weather fetch failed", { status: response.status, body });
       throw new Error(`Open-Meteo current weather failed: ${response.status}`);
     }
 
@@ -74,9 +106,13 @@ export class OpenMeteoProvider implements IWeatherProvider {
       hourly: HOURLY_FIELDS,
       forecast_days: FORECAST_DAYS,
     });
-    const response = await fetch(url.toString());
+    logger.info("Fetching hourly forecast", { lat, lon });
+
+    const response = await fetchWithRetry(url.toString(), "Hourly forecast");
 
     if (!response.ok) {
+      const body = await response.text();
+      logger.error("Hourly forecast fetch failed", { status: response.status, body });
       throw new Error(`Open-Meteo hourly forecast failed: ${response.status}`);
     }
 

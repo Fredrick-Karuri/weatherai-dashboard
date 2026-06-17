@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * WeatherShell.tsx
+ * app/components/client/WeatherShell.tsx
  *
  * Client component. Owns the search state and triggers weather re-fetches
  * when the user searches a new city. Updates URL search params so the
- * last city survives a page reload.
+ * last city survives a page reload. Tracks navigation pending state
+ * separately from geolocation so neither blocks the other.
  */
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import SearchBar from "./SearchBar";
 import { GeocodeResult } from "@/app/lib/types";
@@ -20,10 +21,16 @@ interface WeatherShellProps {
 export default function WeatherShell({ children }: WeatherShellProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [activeCity, setActiveCity] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Mirror isPending into isNavigating so SearchBar stays unblocked
+  // once the transition settles, regardless of how long the page fetch takes.
+  useEffect(() => {
+    if (!isPending) setIsNavigating(false);
+  }, [isPending]);
 
   function handleSearch(result: GeocodeResult) {
-    setActiveCity(result.displayName);
+    setIsNavigating(true);
     startTransition(() => {
       const params = new URLSearchParams();
       params.set("lat", String(result.lat));
@@ -35,12 +42,8 @@ export default function WeatherShell({ children }: WeatherShellProps) {
 
   return (
     <div className="space-y-6">
-      <SearchBar onSearch={handleSearch} isLoading={isPending} />
-      {activeCity && isPending ? (
-        <WeatherSkeleton />
-      ) : (
-        children
-      )}
+      <SearchBar onSearch={handleSearch} isLoading={isNavigating} />
+      {isNavigating ? <WeatherSkeleton /> : children}
     </div>
   );
 }
