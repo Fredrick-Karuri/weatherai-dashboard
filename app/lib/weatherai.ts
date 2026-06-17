@@ -7,9 +7,8 @@
  */
 
 import { CurrentConditions, HourlySlot, WeatherApiResponse } from "./types";
+import { APP_BASE_URL, HOURLY_SLOTS_TO_SHOW, WEATHER_CACHE_TTL_SECONDS } from "./config";
 
-const INTERNAL_BASE_URL =
-  process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export class WeatherFetchError extends Error {
   constructor(
@@ -26,11 +25,11 @@ async function fetchFromRouteHandler(
   lat: number,
   lon: number
 ): Promise<WeatherApiResponse> {
-  const url = new URL(path, INTERNAL_BASE_URL);
+  const url = new URL(path, APP_BASE_URL);
   url.searchParams.set("lat", String(lat));
   url.searchParams.set("lon", String(lon));
 
-  const response = await fetch(url.toString(), { next: { revalidate: 600 } });
+  const response = await fetch(url.toString(), { next: { revalidate: WEATHER_CACHE_TTL_SECONDS } });
 
   if (!response.ok) {
     throw new WeatherFetchError(
@@ -67,9 +66,7 @@ export async function fetchHourlyForecast(
 
   if (!data.hourly) return [];
 
-  const SLOTS_TO_SHOW = 24;
-
-  return data.hourly.time.slice(0, SLOTS_TO_SHOW).map((time, index) => ({
+  return data.hourly.time.slice(0, HOURLY_SLOTS_TO_SHOW).map((time, index) => ({
     time,
     temp: Math.round(data.hourly!.temperature_2m[index]),
     condition: data.hourly!.weather_condition[index],

@@ -7,12 +7,10 @@
  */
 
 import { fetchCurrentWeather, fetchHourlyForecast } from "@/app/lib/weatherai";
+import { DEFAULT_LAT, DEFAULT_LON } from "@/app/lib/config";
 import CurrentWeatherCard from "@/app/components/server/CurrentWeatherCard";
 import HourlyForecastStrip from "@/app/components/client/HourlyForecastStrip";
 import WeatherShell from "@/app/components/client/WeatherShell";
-
-const DEFAULT_LAT = -1.2921;
-const DEFAULT_LON = 36.8219;
 
 interface PageProps {
   searchParams: Promise<{ lat?: string; lon?: string; city?: string }>;

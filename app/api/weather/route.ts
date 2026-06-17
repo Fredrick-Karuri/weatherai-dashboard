@@ -7,8 +7,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { WEATHERAI_BASE_URL, WEATHERAI_UNITS, WEATHER_CACHE_TTL_SECONDS } from "@/app/lib/config";
 
-const WEATHERAI_BASE_URL = "https://api.weather-ai.co";
 const MISSING_PARAMS_MESSAGE = "Missing required query parameters: lat and lon";
 const MISSING_API_KEY_MESSAGE = "WEATHERAI_API_KEY environment variable is not set";
 
@@ -29,11 +29,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const upstreamUrl = new URL(`${WEATHERAI_BASE_URL}/v1/weather`);
   upstreamUrl.searchParams.set("lat", lat);
   upstreamUrl.searchParams.set("lon", lon);
-  upstreamUrl.searchParams.set("units", "metric");
+  upstreamUrl.searchParams.set("units", WEATHERAI_UNITS);
 
   const upstreamResponse = await fetch(upstreamUrl.toString(), {
     headers: { Authorization: `Bearer ${apiKey}` },
-    next: { revalidate: 600 },
+    next: { revalidate: WEATHER_CACHE_TTL_SECONDS },
   });
 
   const data = await upstreamResponse.json();

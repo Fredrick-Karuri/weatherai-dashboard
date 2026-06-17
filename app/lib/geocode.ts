@@ -6,9 +6,8 @@
  */
 
 import { GeocodeResult } from "./types";
+import { GEOCODING_BASE_URL, GEOCODING_MAX_RESULTS } from "./config";
 
-const GEOCODING_BASE_URL = "https://geocoding-api.open-meteo.com/v1/search";
-const MAX_RESULTS = 1;
 
 export class CityNotFoundError extends Error {
   constructor(cityName: string) {
@@ -20,7 +19,7 @@ export class CityNotFoundError extends Error {
 export async function geocodeCity(cityName: string): Promise<GeocodeResult> {
   const url = new URL(GEOCODING_BASE_URL);
   url.searchParams.set("name", cityName);
-  url.searchParams.set("count", String(MAX_RESULTS));
+  url.searchParams.set("count", String(GEOCODING_MAX_RESULTS));
   url.searchParams.set("language", "en");
   url.searchParams.set("format", "json");
 
