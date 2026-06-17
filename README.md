@@ -2,7 +2,7 @@
 
 Real-time weather forecasts with AI-generated summaries, built with Next.js 14 and the [WeatherAI API](https://weather-ai.co).
 
-**Live demo:** _[add your Vercel URL here]_
+**Live demo:** _https://app-nimbus.vercel.app/_
 
 ---
 
@@ -30,7 +30,7 @@ Real-time weather forecasts with AI-generated summaries, built with Next.js 14 a
    ```bash
    cp .env.example .env.local
    ```
-   Get a free key at [weather-ai.co/dashboard](https://weather-ai.co/dashboard).
+   Get a free key at [weather-ai.co](https://weather-ai.co).
 
 3. Start the dev server:
    ```bash
@@ -45,34 +45,41 @@ Real-time weather forecasts with AI-generated summaries, built with Next.js 14 a
 | `WEATHERAI_API_KEY`    | Yes      | Your WeatherAI API key (prefix: `wai_`)         |
 | `NEXT_PUBLIC_APP_URL`  | Yes      | App base URL (default: `http://localhost:3000`) |
 
-## Deploy to Vercel
-
-1. Push to GitHub.
-2. Import the repo in [Vercel](https://vercel.com).
-3. Add `WEATHERAI_API_KEY` and `NEXT_PUBLIC_APP_URL` under **Project → Settings → Environment Variables**.
-4. Deploy.
-
 ## Project Structure
 
 ```
 weatherai-dashboard/
   app/
-    page.tsx                      # Server root: fetches weather, composes layout
+    page.tsx                          # Server root: fetches weather, composes layout
+    layout.tsx                        # Root layout
+    loading.tsx                       # Suspense loading UI
+    error.tsx                         # Error boundary UI
+    globals.css
     api/
-      weather/route.ts            # Proxy: GET /v1/weather (keeps key server-side)
-      hourly/route.ts             # Proxy: GET /v1/hourly
+      weather/route.ts                # Proxy: GET /v1/weather (keeps key server-side)
+      hourly/route.ts                 # Proxy: GET /v1/hourly
     components/
       server/
-        CurrentWeatherCard.tsx    # Conditions + AI summary display
-        WeatherIcon.tsx           # Condition string → inline SVG
+        CurrentWeatherCard.tsx        # Conditions + AI summary display
+        WeatherIcon.tsx               # Condition string → inline SVG
       client/
-        SearchBar.tsx             # City input + geolocation
-        HourlyForecastStrip.tsx   # Scrollable 24h forecast
-        WeatherShell.tsx          # Search state + URL param sync
+        SearchBar.tsx                 # City input + geolocation
+        HourlyForecastStrip.tsx       # Scrollable 24h forecast
+        WeatherShell.tsx              # Search state + URL param sync
     lib/
-      weatherai.ts                # Typed fetch helpers
-      geocode.ts                  # City → lat/lon via Open-Meteo
-      types.ts                    # Shared TypeScript interfaces
+      config.ts                       # App-wide constants and env vars
+      geocode.ts                      # City → lat/lon via Open-Meteo
+      logger.ts                       # Structured logger
+      types.ts                        # Shared TypeScript interfaces
+      providers/
+        index.ts                      # Provider factory
+        types.ts                      # IWeatherProvider interface
+        openmeteo.ts                  # Open-Meteo provider (no key required)
+        weatherai.ts                  # WeatherAI provider (requires API key)
+    __tests__/
+      lib/
+        providers/
+          openmeteo.test.ts
 ```
 
 ## Available Commands
@@ -81,4 +88,5 @@ weatherai-dashboard/
 make dev     # Start development server
 make build   # Production build
 make lint    # Run ESLint
+make test    # Run tests
 ```
