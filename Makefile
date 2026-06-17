@@ -1,8 +1,10 @@
-
 .PHONY: dev build lint
+
 dev:
-    pnpm dev
+	npm run dev
+
 build:
-    pnpm build
+	npm run build
+
 lint:
-    npx eslint .
+	npm run lint

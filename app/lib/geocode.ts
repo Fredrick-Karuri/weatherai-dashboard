@@ -1,14 +1,46 @@
+/**
+ * geocode.ts
+ *
+ * Converts a city name to lat/lon coordinates using the Open-Meteo
+ * Geocoding API — no API key required. Used by SearchBar on the client.
+ */
 
-export async function geocodeCity(q: string) {
-  // supports "lat,lon" passthrough
-  if (/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(q)) {
-    const [lat, lon] = q.split(',').map(Number);
-    return { lat, lon, name: `${lat},${lon}` };
+import { GeocodeResult } from "./types";
+
+const GEOCODING_BASE_URL = "https://geocoding-api.open-meteo.com/v1/search";
+const MAX_RESULTS = 1;
+
+export class CityNotFoundError extends Error {
+  constructor(cityName: string) {
+    super(`No results found for "${cityName}". Try a different city name.`);
+    this.name = "CityNotFoundError";
   }
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1`;
-  const res = await fetch(url, { headers: { 'User-Agent': process.env.OPEN_METEO_USER_AGENT || 'weatherai-dashboard' } });
-  const data = await res.json().catch(() => null);
-  const first = data?.results?.[0];
-  if (!first) return null;
-  return { lat: first.latitude, lon: first.longitude, name: first.name };
+}
+
+export async function geocodeCity(cityName: string): Promise<GeocodeResult> {
+  const url = new URL(GEOCODING_BASE_URL);
+  url.searchParams.set("name", cityName);
+  url.searchParams.set("count", String(MAX_RESULTS));
+  url.searchParams.set("language", "en");
+  url.searchParams.set("format", "json");
+
+  const response = await fetch(url.toString());
+
+  if (!response.ok) {
+    throw new Error(`Geocoding request failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  if (!data.results || data.results.length === 0) {
+    throw new CityNotFoundError(cityName);
+  }
+
+  const first = data.results[0];
+
+  return {
+    lat: first.latitude,
+    lon: first.longitude,
+    displayName: first.name,
+  };
 }
